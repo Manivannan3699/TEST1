@@ -39,36 +39,19 @@
 </head>
 <body>
   <h2>Transaction Entry</h2>
-  <form id="transaction-form">
-    <label>Date:</label>
-    <input type="date" name="date" required />
+<form id="transaction-form">
+  <input type="date" id="date" name="date" required><br>
+  <input type="text" id="branch" name="branch" placeholder="Branch Name" required><br>
+  <input type="text" id="sm" name="sm" placeholder="SM Name" required><br>
+  <input type="text" id="customer" name="customer" placeholder="Customer Name" required><br>
+  <input type="number" id="transactionAmount" name="transactionAmount" placeholder="Transaction Amount" required><br>
+  <input type="number" id="receivedAmount" name="receivedAmount" placeholder="Received Amount" required><br>
+  <input type="number" id="differentAmount" name="differentAmount" placeholder="Different Amount" readonly><br>
+  <input type="text" id="aadhar" name="aadhar" placeholder="Aadhar Number" required><br>
+  <input type="text" id="pan" name="pan" placeholder="PAN Number" required><br>
+  <button type="submit">Submit</button>
+</form>
 
-    <label>Branch Name:</label>
-    <input type="text" name="branch" required />
-
-    <label>SM Name:</label>
-    <input type="text" name="sm" required />
-
-    <label>Customer Name:</label>
-    <input type="text" name="customer" required />
-
-    <label>Transaction Amount:</label>
-    <input type="number" name="transactionAmount" id="transactionAmount" required />
-
-    <label>Received Amount:</label>
-    <input type="number" name="receivedAmount" id="receivedAmount" required />
-
-    <label>Different Amount:</label>
-    <input type="number" name="differentAmount" id="differentAmount" readonly />
-
-    <label>Aadhar Number:</label>
-    <input type="text" name="aadhar" maxlength="12" />
-
-    <label>PAN Number:</label>
-    <input type="text" name="pan" maxlength="10" />
-
-    <button type="submit">Submit</button>
-  </form>
 
   <hr>
 
@@ -97,28 +80,38 @@
   </table>
 
   <script>
-    const sheetURL = "https://script.google.com/macros/s/AKfycbx_GGQsIDroFlOlWS0VtJqXAacjM2B97GtA2CanMijzugIug1wVmh_H1duRkf1LDak9/exec";
+const sheetURL = "https://script.google.com/macros/s/AKfycbynVyDPEdr7fSPwQbqXE5eF2KQgEde8K3CelPm4U2OtZcpkhIfaC3YtAdQdumGF0c89/exec";
 
-    document.getElementById("transaction-form").addEventListener("input", () => {
-      const txn = parseFloat(document.getElementById("transactionAmount").value) || 0;
-      const rcv = parseFloat(document.getElementById("receivedAmount").value) || 0;
-      document.getElementById("differentAmount").value = rcv - txn;
+document.getElementById("transaction-form").addEventListener("input", () => {
+  const txn = parseFloat(document.getElementById("transactionAmount").value) || 0;
+  const rcv = parseFloat(document.getElementById("receivedAmount").value) || 0;
+  document.getElementById("differentAmount").value = rcv - txn;
+});
+
+document.getElementById("transaction-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const data = Object.fromEntries(new FormData(form));
+
+  try {
+    const res = await fetch(sheetURL, {
+      method: "POST",
+      body: JSON.stringify(data),
+      headers: { "Content-Type": "application/json" }
     });
 
-    document.getElementById("transaction-form").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const form = e.target;
-      const data = Object.fromEntries(new FormData(form));
-
-      const res = await fetch(sheetURL, {
-        method: "POST",
-        body: JSON.stringify(data),
-        headers: { "Content-Type": "application/json" }
-      });
-
+    const result = await res.json();
+    if (result.status === "success") {
       alert("Submitted successfully!");
       form.reset();
-    });
+    } else {
+      alert("Error: " + result.message);
+    }
+  } catch (error) {
+    alert("Fetch error: " + error.message);
+  }
+});
+
 
     async function fetchData() {
       const res = await fetch(sheetURL);
@@ -129,15 +122,15 @@
       data.forEach(row => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td>${row.date || ""}</td>
-          <td>${row.branchname || ""}</td>
-          <td>${row.smname || ""}</td>
-          <td>${row.customername || ""}</td>
-          <td>${row.transactionamount || ""}</td>
-          <td>${row.receivedamount || ""}</td>
-          <td>${row.differentamount || ""}</td>
-          <td>${row.aadharnumber || ""}</td>
-          <td>${row.pannumber || ""}</td>
+			<td>${row.date || ""}</td>
+			<td>${row.branch || ""}</td>
+			<td>${row.sm || ""}</td>
+			<td>${row.customer || ""}</td>
+			<td>${row.transactionAmount || ""}</td>
+			<td>${row.receivedAmount || ""}</td>
+			<td>${row.differentAmount || ""}</td>
+			<td>${row.aadhar || ""}</td>
+			<td>${row.pan || ""}</td>
         `;
         tbody.appendChild(tr);
       });
