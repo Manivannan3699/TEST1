@@ -84,7 +84,6 @@
   </table>
 
 <script>
-  // REPLACE THIS with your actual Web App URL from Apps Script deployment:
   const sheetURL = "https://script.google.com/macros/s/AKfycby-ZZvA9XDar46HH4T8HgT21N9G10NxJoEYYHtAOuiB-z7mtVHaJYANMaz1f4RFtJ_Z/exec";
 
   // Calculate difference live
@@ -103,9 +102,10 @@
     try {
       const res = await fetch(sheetURL, {
         method: "POST",
-        body: JSON.stringify(data),
-        headers: { "Content-Type": "application/json" },
-        mode: "cors"  // important to avoid CORS issues
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
       });
 
       if (!res.ok) throw new Error("Network response was not ok");
@@ -129,10 +129,10 @@
   // Load data from sheet and populate table
   async function loadData() {
     try {
-      const res = await fetch(sheetURL, { method: "GET", mode: "cors" });
+      const res = await fetch(sheetURL);
       if (!res.ok) throw new Error("Failed to fetch data");
-      const data = await res.json();
 
+      const data = await res.json();
       const tbody = document.querySelector("#results-table tbody");
       tbody.innerHTML = "";
 
@@ -143,9 +143,9 @@
           <td>${row.branch || ""}</td>
           <td>${row.sm || ""}</td>
           <td>${row.customer || ""}</td>
-          <td>${row.transaction || ""}</td>
-          <td>${row.received || ""}</td>
-          <td>${row.different || ""}</td>
+          <td>${row.transactionamount || ""}</td>
+          <td>${row.receivedamount || ""}</td>
+          <td>${row.differentamount || ""}</td>
           <td>${row.aadhar || ""}</td>
           <td>${row.pan || ""}</td>
         `;
@@ -182,5 +182,6 @@
   // Load data on page load
   window.onload = loadData;
 </script>
+
 </body>
 </html>
