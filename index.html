@@ -105,7 +105,8 @@
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify(data),
+        mode: "cors"
       });
 
       if (!res.ok) throw new Error("Network response was not ok");
