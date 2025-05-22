@@ -28,6 +28,7 @@
     th, td {
       border: 1px solid #ccc;
       padding: 6px;
+      text-align: center;
     }
     .actions {
       display: flex;
@@ -35,34 +36,37 @@
       gap: 10px;
       margin-top: 10px;
     }
+    .actions button {
+      flex: 1 1 150px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
   <h2>Transaction Entry</h2>
-<form id="transaction-form">
-  <input type="date" id="date" name="date" required><br>
-  <input type="text" id="branch" name="branch" placeholder="Branch Name" required><br>
-  <input type="text" id="sm" name="sm" placeholder="SM Name" required><br>
-  <input type="text" id="customer" name="customer" placeholder="Customer Name" required><br>
-  <input type="number" id="transactionAmount" name="transactionAmount" placeholder="Transaction Amount" required><br>
-  <input type="number" id="receivedAmount" name="receivedAmount" placeholder="Received Amount" required><br>
-  <input type="number" id="differentAmount" name="differentAmount" placeholder="Different Amount" readonly><br>
-  <input type="text" id="aadhar" name="aadhar" placeholder="Aadhar Number" required><br>
-  <input type="text" id="pan" name="pan" placeholder="PAN Number" required><br>
-  <button type="submit">Submit</button>
-</form>
-
+  <form id="transaction-form">
+    <input type="date" id="date" name="date" required><br>
+    <input type="text" id="branch" name="branch" placeholder="Branch Name" required><br>
+    <input type="text" id="sm" name="sm" placeholder="SM Name" required><br>
+    <input type="text" id="customer" name="customer" placeholder="Customer Name" required><br>
+    <input type="number" id="transactionAmount" name="transactionAmount" placeholder="Transaction Amount" required><br>
+    <input type="number" id="receivedAmount" name="receivedAmount" placeholder="Received Amount" required><br>
+    <input type="number" id="differentAmount" name="differentAmount" placeholder="Different Amount" readonly><br>
+    <input type="text" id="aadhar" name="aadhar" placeholder="Aadhar Number" required><br>
+    <input type="text" id="pan" name="pan" placeholder="PAN Number" required><br>
+    <button type="submit">Submit</button>
+  </form>
 
   <hr>
 
   <h2>All Transactions</h2>
   <div class="actions">
-    <button onclick="fetchData()">Load Data</button>
-    <button onclick="exportExcel()">Download Excel</button>
-    <button onclick="exportPDF()">Download PDF</button>
+    <button type="button" id="loadDataBtn">Load Data</button>
+    <button type="button" id="exportExcelBtn">Download Excel</button>
+    <button type="button" id="exportPDFBtn">Download PDF</button>
   </div>
 
-  <table id="results-table">
+  <table id="results-table" border="1">
     <thead>
       <tr>
         <th>Date</th>
@@ -79,77 +83,104 @@
     <tbody></tbody>
   </table>
 
-  <script>
-const sheetURL = "https://script.google.com/macros/s/AKfycby1mHL5iAJ2aQCdmTHwlt0_LEuruPdKdz95AbZjTW-LpIAbEMWb1I79nMmwD9qx-tO9/exec";
+<script>
+  // REPLACE THIS with your actual Web App URL from Apps Script deployment:
+  const sheetURL = "YOUR_DEPLOYED_WEB_APP_URL_HERE";
 
-document.getElementById("transaction-form").addEventListener("input", () => {
-  const txn = parseFloat(document.getElementById("transactionAmount").value) || 0;
-  const rcv = parseFloat(document.getElementById("receivedAmount").value) || 0;
-  document.getElementById("differentAmount").value = rcv - txn;
-});
+  // Calculate difference live
+  document.getElementById("transaction-form").addEventListener("input", () => {
+    const txn = parseFloat(document.getElementById("transactionAmount").value) || 0;
+    const rcv = parseFloat(document.getElementById("receivedAmount").value) || 0;
+    document.getElementById("differentAmount").value = rcv - txn;
+  });
 
-document.getElementById("transaction-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const form = e.target;
-  const data = Object.fromEntries(new FormData(form));
+  // Submit form data to Google Apps Script
+  document.getElementById("transaction-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const data = Object.fromEntries(new FormData(form));
 
-  try {
-    const res = await fetch(sheetURL, {
-      method: "POST",
-      body: JSON.stringify(data),
-      headers: { "Content-Type": "application/json" }
-    });
+    try {
+      const res = await fetch(sheetURL, {
+        method: "POST",
+        body: JSON.stringify(data),
+        headers: { "Content-Type": "application/json" },
+        mode: "cors"  // important to avoid CORS issues
+      });
 
-    const result = await res.json();
-    if (result.status === "success") {
-      alert("Submitted successfully!");
-      form.reset();
-    } else {
-      alert("Error: " + result.message);
+      if (!res.ok) throw new Error("Network response was not ok");
+
+      const result = await res.json();
+
+      if (result.status === "success") {
+        alert("Submitted successfully!");
+        form.reset();
+        document.getElementById("differentAmount").value = '';
+        loadData();
+      } else {
+        alert("Error: " + result.message);
+      }
+    } catch (error) {
+      alert("Fetch error: " + error.message);
+      console.error("Fetch error details:", error);
     }
-  } catch (error) {
-    alert("Fetch error: " + error.message);
-  }
-});
+  });
 
-
-    async function fetchData() {
-      const res = await fetch(sheetURL);
+  // Load data from sheet and populate table
+  async function loadData() {
+    try {
+      const res = await fetch(sheetURL, { method: "GET", mode: "cors" });
+      if (!res.ok) throw new Error("Failed to fetch data");
       const data = await res.json();
+
       const tbody = document.querySelector("#results-table tbody");
       tbody.innerHTML = "";
 
       data.forEach(row => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-			<td>${row.date || ""}</td>
-			<td>${row.branch || ""}</td>
-			<td>${row.sm || ""}</td>
-			<td>${row.customer || ""}</td>
-			<td>${row.transactionAmount || ""}</td>
-			<td>${row.receivedAmount || ""}</td>
-			<td>${row.differentAmount || ""}</td>
-			<td>${row.aadhar || ""}</td>
-			<td>${row.pan || ""}</td>
+          <td>${row.date || ""}</td>
+          <td>${row.branch || ""}</td>
+          <td>${row.sm || ""}</td>
+          <td>${row.customer || ""}</td>
+          <td>${row.transaction || ""}</td>
+          <td>${row.received || ""}</td>
+          <td>${row.different || ""}</td>
+          <td>${row.aadhar || ""}</td>
+          <td>${row.pan || ""}</td>
         `;
         tbody.appendChild(tr);
       });
+    } catch (error) {
+      alert("Error loading data: " + error.message);
+      console.error("Load data error:", error);
     }
+  }
 
-    function exportExcel() {
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.table_to_sheet(document.getElementById("results-table"));
-      XLSX.utils.book_append_sheet(wb, ws, "Transactions");
-      XLSX.writeFile(wb, "Transactions.xlsx");
-    }
+  // Export table to Excel
+  function exportExcel() {
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.table_to_sheet(document.getElementById("results-table"));
+    XLSX.utils.book_append_sheet(wb, ws, "Transactions");
+    XLSX.writeFile(wb, "Transactions.xlsx");
+  }
 
-    async function exportPDF() {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-      doc.text("Transaction Report", 14, 15);
-      doc.autoTable({ html: "#results-table", startY: 20 });
-      doc.save("Transactions.pdf");
-    }
-  </script>
+  // Export table to PDF
+  async function exportPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.text("Transaction Report", 14, 15);
+    doc.autoTable({ html: "#results-table", startY: 20 });
+    doc.save("Transactions.pdf");
+  }
+
+  // Event listeners for buttons
+  document.getElementById("loadDataBtn").addEventListener("click", loadData);
+  document.getElementById("exportExcelBtn").addEventListener("click", exportExcel);
+  document.getElementById("exportPDFBtn").addEventListener("click", exportPDF);
+
+  // Load data on page load
+  window.onload = loadData;
+</script>
 </body>
 </html>
