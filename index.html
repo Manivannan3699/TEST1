@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Transaction Entry</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    body {
+      font-family: Arial;
+      padding: 20px;
+      max-width: 700px;
+      margin: auto;
+    }
+    input, select, button {
+      padding: 8px;
+      margin: 6px 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 25px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 6px;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Transaction Entry</h2>
+  <form id="transaction-form">
+    <label>Date:</label>
+    <input type="date" name="date" required />
+
+    <label>Branch Name:</label>
+    <input type="text" name="branch" required />
+
+    <label>SM Name:</label>
+    <input type="text" name="sm" required />
+
+    <label>Customer Name:</label>
+    <input type="text" name="customer" required />
+
+    <label>Transaction Amount:</label>
+    <input type="number" name="transactionAmount" id="transactionAmount" required />
+
+    <label>Received Amount:</label>
+    <input type="number" name="receivedAmount" id="receivedAmount" required />
+
+    <label>Different Amount:</label>
+    <input type="number" name="differentAmount" id="differentAmount" readonly />
+
+    <label>Aadhar Number:</label>
+    <input type="text" name="aadhar" maxlength="12" />
+
+    <label>PAN Number:</label>
+    <input type="text" name="pan" maxlength="10" />
+
+    <button type="submit">Submit</button>
+  </form>
+
+  <hr>
+
+  <h2>All Transactions</h2>
+  <div class="actions">
+    <button onclick="fetchData()">Load Data</button>
+    <button onclick="exportExcel()">Download Excel</button>
+    <button onclick="exportPDF()">Download PDF</button>
+  </div>
+
+  <table id="results-table">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Branch</th>
+        <th>SM</th>
+        <th>Customer</th>
+        <th>Transaction</th>
+        <th>Received</th>
+        <th>Different</th>
+        <th>Aadhar</th>
+        <th>PAN</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const sheetURL = "https://script.google.com/macros/s/AKfycbx_GGQsIDroFlOlWS0VtJqXAacjM2B97GtA2CanMijzugIug1wVmh_H1duRkf1LDak9/exec";
+
+    document.getElementById("transaction-form").addEventListener("input", () => {
+      const txn = parseFloat(document.getElementById("transactionAmount").value) || 0;
+      const rcv = parseFloat(document.getElementById("receivedAmount").value) || 0;
+      document.getElementById("differentAmount").value = rcv - txn;
+    });
+
+    document.getElementById("transaction-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const data = Object.fromEntries(new FormData(form));
+
+      const res = await fetch(sheetURL, {
+        method: "POST",
+        body: JSON.stringify(data),
+        headers: { "Content-Type": "application/json" }
+      });
+
+      alert("Submitted successfully!");
+      form.reset();
+    });
+
+    async function fetchData() {
+      const res = await fetch(sheetURL);
+      const data = await res.json();
+      const tbody = document.querySelector("#results-table tbody");
+      tbody.innerHTML = "";
+
+      data.forEach(row => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${row.date || ""}</td>
+          <td>${row.branchname || ""}</td>
+          <td>${row.smname || ""}</td>
+          <td>${row.customername || ""}</td>
+          <td>${row.transactionamount || ""}</td>
+          <td>${row.receivedamount || ""}</td>
+          <td>${row.differentamount || ""}</td>
+          <td>${row.aadharnumber || ""}</td>
+          <td>${row.pannumber || ""}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function exportExcel() {
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.table_to_sheet(document.getElementById("results-table"));
+      XLSX.utils.book_append_sheet(wb, ws, "Transactions");
+      XLSX.writeFile(wb, "Transactions.xlsx");
+    }
+
+    async function exportPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.text("Transaction Report", 14, 15);
+      doc.autoTable({ html: "#results-table", startY: 20 });
+      doc.save("Transactions.pdf");
+    }
+  </script>
+</body>
+</html>
