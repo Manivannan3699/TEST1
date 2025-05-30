@@ -94,38 +94,37 @@
   });
 
   // Submit form data to Google Apps Script
-  document.getElementById("transaction-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const form = e.target;
-    const data = Object.fromEntries(new FormData(form));
+  
+document.getElementById("transaction-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const data = Object.fromEntries(new FormData(form));
 
-    try {
-      const res = await fetch(sheetURL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "text/plain"
-        },
-        body: JSON.stringify(data),
-        mode: "cors"
-      });
+  try {
+    const res = await fetch(sheetURL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain" // ✅ Avoids CORS preflight
+      },
+      body: JSON.stringify(data),
+      mode: "cors"
+    });
 
-      if (!res.ok) throw new Error("Network response was not ok");
+    const result = await res.json();
 
-      const result = await res.json();
-
-      if (result.status === "success") {
-        alert("Submitted successfully!");
-        form.reset();
-        document.getElementById("differentAmount").value = '';
-        loadData();
-      } else {
-        alert("Error: " + result.message);
-      }
-    } catch (error) {
-      alert("Fetch error: " + error.message);
-      console.error("Fetch error details:", error);
-    }
-  });
+    if (result.status === "success") {
+      alert("Submitted successfully!");
+      form.reset();
+      document.getElementById("differentAmount").value = '';
+      loadData();
+    } else {
+      alert("Error: " + result.message);
+    }
+  } catch (error) {
+    alert("Fetch error: " + error.message);
+    console.error("Fetch error details:", error);
+  }
+});
 
   // Load data from sheet and populate table
   async function loadData() {
