@@ -46,16 +46,13 @@
 
   // Form submission
   document.getElementById('transactionForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const formData = new FormData(this);
-    const data = {};
-    formData.forEach((value, key) => data[key] = value);
+  e.preventDefault();
+  const formData = new FormData(this);
+  const params = new URLSearchParams();
+  formData.forEach((value, key) => params.append(key, value));
+  params.append('submit', '1');  // tell script this is a submit request
 
-    fetch(scriptURL, {
-      method: 'POST',
-      body: JSON.stringify(data),
-      headers: { 'Content-Type': 'application/json' }
-    })
+  fetch(scriptURL + '?' + params.toString())
     .then(res => res.text())
     .then(res => {
       alert('Submitted successfully!');
@@ -63,7 +60,7 @@
       loadData();
     })
     .catch(err => alert('Error: ' + err));
-  });
+});
 
   let allData = [];
 
