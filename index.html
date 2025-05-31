@@ -4,31 +4,12 @@
   <title>Daily Transaction Tracker</title>
   <meta charset="UTF-8" />
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-    }
-    input, select {
-      padding: 5px;
-      margin: 5px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-    }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 6px;
-      text-align: center;
-    }
-    th {
-      background-color: #f2f2f2;
-    }
-    button {
-      margin: 5px;
-      padding: 6px 12px;
-    }
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    input, select { padding: 5px; margin: 5px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
+    th { background-color: #f2f2f2; }
+    button { margin: 5px; padding: 6px 12px; }
   </style>
 </head>
 <body>
@@ -59,97 +40,101 @@
     <tbody></tbody>
   </table>
 
-  <script>
-    const scriptURL = "https://script.google.com/macros/s/AKfycbzZWZ9vw1rMI3Mlw7heGy1YQ37x2eBCvcaFzPDU2J3cdNzt99olRxfoFipPLwvwOUF4hw/exec";
+<script>
+  // Replace with your actual Apps Script web app URL
+  const scriptURL = 'https://script.google.com/macros/s/AKfycby8pYT2nK7ircLawiZ1qR42rqHTZnrEUxFcv9F09kTRQqOh_7yatLGUA09zGlGE0uEiTA/exec';
 
-    // Form submission
-    document.getElementById('transactionForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-      const formData = new FormData(this);
-      const data = {};
-      formData.forEach((value, key) => data[key] = value);
+  // Form submission
+  document.getElementById('transactionForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const data = {};
+    formData.forEach((value, key) => data[key] = value);
 
-      fetch(scriptURL, {
-        method: 'POST',
-        body: JSON.stringify(data),
-        headers: { 'Content-Type': 'application/json' }
-      })
-      .then(res => res.text())
-      .then(res => {
-        alert('Submitted successfully!');
-        this.reset();
-        loadData();
-      })
-      .catch(err => alert('Error: ' + err));
-    });
+    fetch(scriptURL, {
+      method: 'POST',
+      body: JSON.stringify(data),
+      headers: { 'Content-Type': 'application/json' }
+    })
+    .then(res => res.text())
+    .then(res => {
+      alert('Submitted successfully!');
+      this.reset();
+      loadData();
+    })
+    .catch(err => alert('Error: ' + err));
+  });
 
-    // Load and display data
-    let allData = [];
-    function loadData() {
-      fetch(scriptURL)
-        .then(res => res.json())
-        .then(data => {
-          allData = data;
-          renderTable(data);
-        });
+  let allData = [];
+
+  // Load data using JSONP
+  function loadData() {
+    const callbackName = 'jsonpCallback_' + Math.floor(Math.random() * 1000000);
+    window[callbackName] = function(data) {
+      allData = data;
+      renderTable(data);
+      delete window[callbackName];
+      script.remove();
+    };
+
+    const script = document.createElement('script');
+    script.src = `${scriptURL}?callback=${callbackName}`;
+    document.body.appendChild(script);
+  }
+
+  function renderTable(data) {
+    const thead = document.querySelector('#dataTable thead');
+    const tbody = document.querySelector('#dataTable tbody');
+    if (data.length === 0) {
+      thead.innerHTML = '';
+      tbody.innerHTML = '<tr><td colspan="9">No data</td></tr>';
+      return;
     }
 
-    function renderTable(data) {
-      const thead = document.querySelector('#dataTable thead');
-      const tbody = document.querySelector('#dataTable tbody');
-      if (data.length === 0) {
-        thead.innerHTML = '';
-        tbody.innerHTML = '<tr><td colspan="10">No data</td></tr>';
-        return;
-      }
+    thead.innerHTML = '<tr>' + Object.keys(data[0]).map(h => `<th>${h}</th>`).join('') + '</tr>';
+    tbody.innerHTML = data.map(row => {
+      return '<tr>' + Object.values(row).map(val => `<td>${val}</td>`).join('') + '</tr>';
+    }).join('');
+  }
 
-      // Headers
-      thead.innerHTML = '<tr>' + Object.keys(data[0]).map(h => `<th>${h}</th>`).join('') + '</tr>';
+  // Filtering
+  function filterData() {
+    const branch = document.getElementById('filterBranch').value.toLowerCase();
+    const sm = document.getElementById('filterSM').value.toLowerCase();
+    const customer = document.getElementById('filterCustomer').value.toLowerCase();
 
-      // Rows
-      tbody.innerHTML = data.map(row => {
-        return '<tr>' + Object.values(row).map(val => `<td>${val}</td>`).join('') + '</tr>';
-      }).join('');
-    }
+    const filtered = allData.filter(row =>
+      row.Branch.toLowerCase().includes(branch) &&
+      row.SM.toLowerCase().includes(sm) &&
+      row.Customer.toLowerCase().includes(customer)
+    );
 
-    // Filtering
-    function filterData() {
-      const branch = document.getElementById('filterBranch').value.toLowerCase();
-      const sm = document.getElementById('filterSM').value.toLowerCase();
-      const customer = document.getElementById('filterCustomer').value.toLowerCase();
+    renderTable(filtered);
+  }
 
-      const filtered = allData.filter(row =>
-        row.Branch.toLowerCase().includes(branch) &&
-        row.SM.toLowerCase().includes(sm) &&
-        row.Customer.toLowerCase().includes(customer)
-      );
+  // Export to Excel
+  function downloadExcel() {
+    let table = document.getElementById('dataTable').outerHTML;
+    let blob = new Blob(['\ufeff', table], { type: 'application/vnd.ms-excel' });
+    let link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'transactions.xls';
+    link.click();
+  }
 
-      renderTable(filtered);
-    }
+  // Export to PDF
+  function downloadPDF() {
+    const printWindow = window.open('', '', 'height=600,width=800');
+    printWindow.document.write('<html><head><title>Transactions</title></head><body>');
+    printWindow.document.write(document.getElementById('dataTable').outerHTML);
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    printWindow.print();
+  }
 
-    // Export to Excel
-    function downloadExcel() {
-      let table = document.getElementById('dataTable').outerHTML;
-      let blob = new Blob(['\ufeff', table], { type: 'application/vnd.ms-excel' });
-      let link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = 'transactions.xls';
-      link.click();
-    }
-
-    // Export to PDF
-    function downloadPDF() {
-      const printWindow = window.open('', '', 'height=600,width=800');
-      printWindow.document.write('<html><head><title>Transactions</title></head><body>');
-      printWindow.document.write(document.getElementById('dataTable').outerHTML);
-      printWindow.document.write('</body></html>');
-      printWindow.document.close();
-      printWindow.print();
-    }
-
-    // Initial load
-    loadData();
-  </script>
+  // Load data on page load
+  loadData();
+</script>
 
 </body>
 </html>
