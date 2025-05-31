@@ -85,8 +85,19 @@
     e.preventDefault();
     const formData = new FormData(this);
     const params = new URLSearchParams();
-    formData.forEach((value, key) => params.append(key, value));
+// Explicit order matters
+    params.append('Date', formData.get('Date') || '');
+    params.append('Branch', formData.get('Branch') || '');
+    params.append('SM', formData.get('SM') || '');
+    params.append('Customer', formData.get('Customer') || '');
+    params.append('Transaction', formData.get('Transaction') || '');
+    params.append('Received', formData.get('Received') || '');
+    params.append('Percentage', formData.get('Percentage') || '');
+    params.append('Aadhar', formData.get('Aadhar') || '');
+    params.append('PAN', formData.get('PAN') || '');
+
     params.append('submit', '1');
+
     fetch(scriptURL + '?' + params.toString())
       .then(res => res.text())
       .then(() => {
