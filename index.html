@@ -3,37 +3,67 @@
 <head>
   <title>Daily Transaction Tracker</title>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; }
-    input, select { padding: 5px; margin: 5px; }
+    input, select, button { padding: 8px; margin: 6px 0; width: 100%; box-sizing: border-box; }
+    label { display: block; margin-top: 10px; }
+    form, .dashboard-controls { max-width: 600px; margin: auto; }
     table { width: 100%; border-collapse: collapse; margin-top: 20px; }
     th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
     th { background-color: #f2f2f2; }
-    button { margin: 5px; padding: 6px 12px; }
+    button { cursor: pointer; }
+    @media (min-width: 600px) {
+      .flex-row { display: flex; gap: 10px; }
+      .flex-row > * { flex: 1; }
+    }
   </style>
 </head>
 <body>
 
-  <h2>Daily Transaction Form</h2>
+  <h2 style="text-align:center;">Daily Transaction Form</h2>
   <form id="transactionForm">
     <label>Date: <input type="date" name="Date" required></label>
     <label>Branch: <input type="text" name="Branch" required></label>
     <label>SM: <input type="text" name="SM" required></label>
-    <label>Customer: <input type="text" name="Customer" required></label><br>
-    <label>Transaction: <input type="number" name="Transaction" required></label>
-    <label>Received: <input type="number" name="Received" required></label>
+    <label>Customer: <input type="text" name="Customer" required></label>
+    <div class="flex-row">
+      <label>Transaction: <input type="number" name="Transaction" required></label>
+      <label>Received: <input type="number" name="Received" required></label>
+    </div>
     <label>Aadhar: <input type="text" name="Aadhar"></label>
-    <label>PAN: <input type="text" name="PAN"></label><br>
+    <label>PAN: <input type="text" name="PAN"></label>
     <button type="submit">Submit</button>
   </form>
 
-  <h2>Transaction Dashboard</h2>
-  <label>Filter by Branch: <input type="text" id="filterBranch"></label>
-  <label>Filter by SM: <input type="text" id="filterSM"></label>
-  <label>Filter by Customer: <input type="text" id="filterCustomer"></label>
-  <button onclick="filterData()">Filter</button>
-  <button onclick="downloadExcel()">Download Excel</button>
-  <button onclick="downloadPDF()">Download PDF</button>
+  <h2 style="text-align:center;">Transaction Dashboard</h2>
+  <div class="dashboard-controls">
+    <div class="flex-row">
+      <label>Month:
+        <select id="monthFilter">
+          <option value="">All</option>
+          <option value="1">January</option>
+          <option value="2">February</option>
+          <option value="3">March</option>
+          <option value="4">April</option>
+          <option value="5">May</option>
+          <option value="6">June</option>
+          <option value="7">July</option>
+          <option value="8">August</option>
+          <option value="9">September</option>
+          <option value="10">October</option>
+          <option value="11">November</option>
+          <option value="12">December</option>
+        </select>
+      </label>
+      <label>Year:
+        <select id="yearFilter"></select>
+      </label>
+    </div>
+    <button onclick="filterByMonthYear()">Filter</button>
+    <button onclick="downloadExcel()">Download Excel</button>
+    <button onclick="downloadPDF()">Download PDF</button>
+  </div>
 
   <table id="dataTable">
     <thead></thead>
@@ -41,39 +71,34 @@
   </table>
 
 <script>
-  // Replace with your actual Apps Script web app URL
   const scriptURL = 'https://script.google.com/macros/s/AKfycbwAhltG_1VgclF-rHK7hyhZM81iTOyRVjOGF0ieUsz5RJhpxg0BbZtNKm7bCS8tIMdowg/exec';
-
-  // Form submission
-  document.getElementById('transactionForm').addEventListener('submit', function(e) {
-  e.preventDefault();
-  const formData = new FormData(this);
-  const params = new URLSearchParams();
-  formData.forEach((value, key) => params.append(key, value));
-  params.append('submit', '1');  // tell script this is a submit request
-
-  fetch(scriptURL + '?' + params.toString())
-    .then(res => res.text())
-    .then(res => {
-      alert('Submitted successfully!');
-      this.reset();
-      loadData();
-    })
-    .catch(err => alert('Error: ' + err));
-});
-
   let allData = [];
 
-  // Load data using JSONP
+  document.getElementById('transactionForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const params = new URLSearchParams();
+    formData.forEach((value, key) => params.append(key, value));
+    params.append('submit', '1');
+    fetch(scriptURL + '?' + params.toString())
+      .then(res => res.text())
+      .then(() => {
+        alert('Submitted successfully!');
+        this.reset();
+        loadData();
+      })
+      .catch(err => alert('Error: ' + err));
+  });
+
   function loadData() {
-    const callbackName = 'jsonpCallback_' + Math.floor(Math.random() * 1000000);
+    const callbackName = 'cb_' + Math.floor(Math.random() * 1000000);
     window[callbackName] = function(data) {
       allData = data;
       renderTable(data);
+      populateYearDropdown();
       delete window[callbackName];
       script.remove();
     };
-
     const script = document.createElement('script');
     script.src = `${scriptURL}?callback=${callbackName}`;
     document.body.appendChild(script);
@@ -87,29 +112,38 @@
       tbody.innerHTML = '<tr><td colspan="9">No data</td></tr>';
       return;
     }
-
     thead.innerHTML = '<tr>' + Object.keys(data[0]).map(h => `<th>${h}</th>`).join('') + '</tr>';
     tbody.innerHTML = data.map(row => {
       return '<tr>' + Object.values(row).map(val => `<td>${val}</td>`).join('') + '</tr>';
     }).join('');
   }
 
-  // Filtering
-  function filterData() {
-    const branch = document.getElementById('filterBranch').value.toLowerCase();
-    const sm = document.getElementById('filterSM').value.toLowerCase();
-    const customer = document.getElementById('filterCustomer').value.toLowerCase();
+  function filterByMonthYear() {
+    const month = document.getElementById('monthFilter').value;
+    const year = document.getElementById('yearFilter').value;
 
-    const filtered = allData.filter(row =>
-      row.Branch.toLowerCase().includes(branch) &&
-      row.SM.toLowerCase().includes(sm) &&
-      row.Customer.toLowerCase().includes(customer)
-    );
+    const filtered = allData.filter(row => {
+      if (!row.Date) return false;
+      const date = new Date(row.Date);
+      const matchMonth = !month || (date.getMonth() + 1).toString() === month;
+      const matchYear = !year || date.getFullYear().toString() === year;
+      return matchMonth && matchYear;
+    });
 
     renderTable(filtered);
   }
 
-  // Export to Excel
+  function populateYearDropdown() {
+    const yearFilter = document.getElementById('yearFilter');
+    yearFilter.innerHTML = '<option value="">All</option>';
+    for (let y = 2025; y <= 2100; y++) {
+      const option = document.createElement('option');
+      option.value = y;
+      option.textContent = y;
+      yearFilter.appendChild(option);
+    }
+  }
+
   function downloadExcel() {
     let table = document.getElementById('dataTable').outerHTML;
     let blob = new Blob(['\ufeff', table], { type: 'application/vnd.ms-excel' });
@@ -119,7 +153,6 @@
     link.click();
   }
 
-  // Export to PDF
   function downloadPDF() {
     const printWindow = window.open('', '', 'height=600,width=800');
     printWindow.document.write('<html><head><title>Transactions</title></head><body>');
@@ -129,7 +162,6 @@
     printWindow.print();
   }
 
-  // Load data on page load
   loadData();
 </script>
 
