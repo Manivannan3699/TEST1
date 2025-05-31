@@ -99,24 +99,29 @@
       delete window[callbackName];
       script.remove();
     };
-    const script = document.createElement('script');
+    const script = document.createElement('script')/;
     script.src = `${scriptURL}?callback=${callbackName}`;
     document.body.appendChild(script);
   }
 
   function renderTable(data) {
-    const thead = document.querySelector('#dataTable thead');
-    const tbody = document.querySelector('#dataTable tbody');
-    if (data.length === 0) {
-      thead.innerHTML = '';
-      tbody.innerHTML = '<tr><td colspan="9">No data</td></tr>';
-      return;
-    }
-    thead.innerHTML = '<tr>' + Object.keys(data[0]).map(h => `<th>${h}</th>`).join('') + '</tr>';
-    tbody.innerHTML = data.map(row => {
-      return '<tr>' + Object.values(row).map(val => `<td>${val}</td>`).join('') + '</tr>';
-    }).join('');
+  const table = document.getElementById('dataTable');
+  const thead = table.querySelector('thead');
+  const tbody = table.querySelector('tbody');
+
+  if (data.length === 0) {
+    table.style.display = 'none';
+    tbody.innerHTML = '<tr><td colspan="9">No matching data found.</td></tr>';
+    return;
   }
+
+  table.style.display = 'table'; // Show the table if there's data
+
+  thead.innerHTML = '<tr>' + Object.keys(data[0]).map(h => `<th>${h}</th>`).join('') + '</tr>';
+  tbody.innerHTML = data.map(row => {
+    return '<tr>' + Object.values(row).map(val => `<td>${val}</td>`).join('') + '</tr>';
+  }).join('');
+}
 
   function filterByMonthYear() {
     const month = document.getElementById('monthFilter').value;
