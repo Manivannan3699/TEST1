@@ -1,187 +1,155 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <title>Daily Transaction Tracker</title>
   <meta charset="UTF-8" />
-  <title>Transaction Entry</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
   <style>
     body {
-      font-family: Arial;
-      padding: 20px;
-      max-width: 700px;
-      margin: auto;
+      font-family: Arial, sans-serif;
+      margin: 20px;
     }
-    input, select, button {
-      padding: 8px;
-      margin: 6px 0;
-      width: 100%;
-      box-sizing: border-box;
+    input, select {
+      padding: 5px;
+      margin: 5px;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 25px;
+      margin-top: 20px;
     }
     th, td {
       border: 1px solid #ccc;
       padding: 6px;
       text-align: center;
     }
-    .actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 10px;
+    th {
+      background-color: #f2f2f2;
     }
-    .actions button {
-      flex: 1 1 150px;
-      cursor: pointer;
+    button {
+      margin: 5px;
+      padding: 6px 12px;
     }
   </style>
 </head>
 <body>
-  <h2>Transaction Entry</h2>
-  <form id="transaction-form">
-    <input type="date" id="date" name="date" required><br>
-    <input type="text" id="branch" name="branch" placeholder="Branch Name" required><br>
-    <input type="text" id="sm" name="sm" placeholder="SM Name" required><br>
-    <input type="text" id="customer" name="customer" placeholder="Customer Name" required><br>
-    <input type="number" id="transactionAmount" name="transactionAmount" placeholder="Transaction Amount" required><br>
-    <input type="number" id="receivedAmount" name="receivedAmount" placeholder="Received Amount" required><br>
-    <input type="number" id="differentAmount" name="differentAmount" placeholder="Different Amount" readonly><br>
-    <input type="text" id="aadhar" name="aadhar" placeholder="Aadhar Number" required><br>
-    <input type="text" id="pan" name="pan" placeholder="PAN Number" required><br>
+
+  <h2>Daily Transaction Form</h2>
+  <form id="transactionForm">
+    <label>Date: <input type="date" name="Date" required></label>
+    <label>Branch: <input type="text" name="Branch" required></label>
+    <label>SM: <input type="text" name="SM" required></label>
+    <label>Customer: <input type="text" name="Customer" required></label><br>
+    <label>Transaction: <input type="number" name="Transaction" required></label>
+    <label>Received: <input type="number" name="Received" required></label>
+    <label>Aadhar: <input type="text" name="Aadhar"></label>
+    <label>PAN: <input type="text" name="PAN"></label><br>
     <button type="submit">Submit</button>
   </form>
 
-  <hr>
+  <h2>Transaction Dashboard</h2>
+  <label>Filter by Branch: <input type="text" id="filterBranch"></label>
+  <label>Filter by SM: <input type="text" id="filterSM"></label>
+  <label>Filter by Customer: <input type="text" id="filterCustomer"></label>
+  <button onclick="filterData()">Filter</button>
+  <button onclick="downloadExcel()">Download Excel</button>
+  <button onclick="downloadPDF()">Download PDF</button>
 
-  <h2>All Transactions</h2>
-  <div class="actions">
-    <button type="button" id="loadDataBtn">Load Data</button>
-    <button type="button" id="exportExcelBtn">Download Excel</button>
-    <button type="button" id="exportPDFBtn">Download PDF</button>
-  </div>
-
-  <table id="results-table" border="1">
-    <thead>
-      <tr>
-        <th>Date</th>
-        <th>Branch</th>
-        <th>SM</th>
-        <th>Customer</th>
-        <th>Transaction</th>
-        <th>Received</th>
-        <th>Different</th>
-        <th>Aadhar</th>
-        <th>PAN</th>
-      </tr>
-    </thead>
+  <table id="dataTable">
+    <thead></thead>
     <tbody></tbody>
   </table>
 
-<script>
-  const sheetURL = "https://script.google.com/macros/s/AKfycbxubwe244qheIRtU8x8ar65-kNAvTdf56Q64NEIUg4W6u9uzm3HKGljepOsU2axMR7NQg/exec";
+  <script>
+    const scriptURL = "https://script.google.com/macros/s/AKfycbzZWZ9vw1rMI3Mlw7heGy1YQ37x2eBCvcaFzPDU2J3cdNzt99olRxfoFipPLwvwOUF4hw/exec";
 
-  // Calculate difference live
-  document.getElementById("transaction-form").addEventListener("input", () => {
-    const txn = parseFloat(document.getElementById("transactionAmount").value) || 0;
-    const rcv = parseFloat(document.getElementById("receivedAmount").value) || 0;
-    document.getElementById("differentAmount").value = rcv - txn;
-  });
+    // Form submission
+    document.getElementById('transactionForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const formData = new FormData(this);
+      const data = {};
+      formData.forEach((value, key) => data[key] = value);
 
-  // Submit form data to Google Apps Script
-  
-document.getElementById("transaction-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const form = e.target;
-  const data = Object.fromEntries(new FormData(form));
+      fetch(scriptURL, {
+        method: 'POST',
+        body: JSON.stringify(data),
+        headers: { 'Content-Type': 'application/json' }
+      })
+      .then(res => res.text())
+      .then(res => {
+        alert('Submitted successfully!');
+        this.reset();
+        loadData();
+      })
+      .catch(err => alert('Error: ' + err));
+    });
 
-  try {
-    const res = await fetch(sheetURL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "text/plain" // ✅ Avoids CORS preflight
-      },
-      body: JSON.stringify(data),
-      mode: "cors"
-    });
-
-    const result = await res.json();
-
-    if (result.status === "success") {
-      alert("Submitted successfully!");
-      form.reset();
-      document.getElementById("differentAmount").value = '';
-      loadData();
-    } else {
-      alert("Error: " + result.message);
-    }
-  } catch (error) {
-    alert("Fetch error: " + error.message);
-    console.error("Fetch error details:", error);
-  }
-});
-
-  // Load data from sheet and populate table
-  async function loadData() {
-    try {
-      const res = await fetch(sheetURL);
-      if (!res.ok) throw new Error("Failed to fetch data");
-
-      const data = await res.json();
-      const tbody = document.querySelector("#results-table tbody");
-      tbody.innerHTML = "";
-
-      data.forEach(row => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${row.date || ""}</td>
-          <td>${row.branch || ""}</td>
-          <td>${row.sm || ""}</td>
-          <td>${row.customer || ""}</td>
-          <td>${row.transactionamount || ""}</td>
-          <td>${row.receivedamount || ""}</td>
-          <td>${row.differentamount || ""}</td>
-          <td>${row.aadhar || ""}</td>
-          <td>${row.pan || ""}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    } catch (error) {
-      alert("Error loading data: " + error.message);
-      console.error("Load data error:", error);
+    // Load and display data
+    let allData = [];
+    function loadData() {
+      fetch(scriptURL)
+        .then(res => res.json())
+        .then(data => {
+          allData = data;
+          renderTable(data);
+        });
     }
-  }
 
-  // Export table to Excel
-  function exportExcel() {
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.table_to_sheet(document.getElementById("results-table"));
-    XLSX.utils.book_append_sheet(wb, ws, "Transactions");
-    XLSX.writeFile(wb, "Transactions.xlsx");
-  }
+    function renderTable(data) {
+      const thead = document.querySelector('#dataTable thead');
+      const tbody = document.querySelector('#dataTable tbody');
+      if (data.length === 0) {
+        thead.innerHTML = '';
+        tbody.innerHTML = '<tr><td colspan="10">No data</td></tr>';
+        return;
+      }
 
-  // Export table to PDF
-  async function exportPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    doc.text("Transaction Report", 14, 15);
-    doc.autoTable({ html: "#results-table", startY: 20 });
-    doc.save("Transactions.pdf");
-  }
+      // Headers
+      thead.innerHTML = '<tr>' + Object.keys(data[0]).map(h => `<th>${h}</th>`).join('') + '</tr>';
 
-  // Event listeners for buttons
-  document.getElementById("loadDataBtn").addEventListener("click", loadData);
-  document.getElementById("exportExcelBtn").addEventListener("click", exportExcel);
-  document.getElementById("exportPDFBtn").addEventListener("click", exportPDF);
+      // Rows
+      tbody.innerHTML = data.map(row => {
+        return '<tr>' + Object.values(row).map(val => `<td>${val}</td>`).join('') + '</tr>';
+      }).join('');
+    }
 
-  // Load data on page load
-  window.onload = loadData;
-</script>
+    // Filtering
+    function filterData() {
+      const branch = document.getElementById('filterBranch').value.toLowerCase();
+      const sm = document.getElementById('filterSM').value.toLowerCase();
+      const customer = document.getElementById('filterCustomer').value.toLowerCase();
+
+      const filtered = allData.filter(row =>
+        row.Branch.toLowerCase().includes(branch) &&
+        row.SM.toLowerCase().includes(sm) &&
+        row.Customer.toLowerCase().includes(customer)
+      );
+
+      renderTable(filtered);
+    }
+
+    // Export to Excel
+    function downloadExcel() {
+      let table = document.getElementById('dataTable').outerHTML;
+      let blob = new Blob(['\ufeff', table], { type: 'application/vnd.ms-excel' });
+      let link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'transactions.xls';
+      link.click();
+    }
+
+    // Export to PDF
+    function downloadPDF() {
+      const printWindow = window.open('', '', 'height=600,width=800');
+      printWindow.document.write('<html><head><title>Transactions</title></head><body>');
+      printWindow.document.write(document.getElementById('dataTable').outerHTML);
+      printWindow.document.write('</body></html>');
+      printWindow.document.close();
+      printWindow.print();
+    }
+
+    // Initial load
+    loadData();
+  </script>
 
 </body>
 </html>
