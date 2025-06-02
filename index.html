@@ -2,6 +2,7 @@
 <html>
 <head>
   <title>Daily Transaction Tracker</title>
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/xlsx.full.min.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
@@ -167,14 +168,14 @@
     }
   }
 
-  function downloadExcel() {
-    let table = document.getElementById('dataTable').outerHTML;
-    let blob = new Blob(['\ufeff', table], { type: 'application/vnd.ms-excel' });
-    let link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'transactions.xls';
-    link.click();
-  }
+function downloadExcel() {
+  const table = document.getElementById('dataTable');
+  const ws = XLSX.utils.table_to_sheet(table);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
+  XLSX.writeFile(wb, 'transactions.xlsx');
+}
+
 
   function downloadPDF() {
     const printWindow = window.open('', '', 'height=600,width=800');
