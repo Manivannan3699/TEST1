@@ -169,12 +169,42 @@
   }
 
 function downloadExcel() {
-  const table = document.getElementById('dataTable');
-  const ws = XLSX.utils.table_to_sheet(table);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
-  XLSX.writeFile(wb, 'transactions.xlsx');
+  const tableHTML = document.getElementById('dataTable').outerHTML;
+
+  const html = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office"
+          xmlns:x="urn:schemas-microsoft-com:office:excel"
+          xmlns="http://www.w3.org/TR/REC-html40">
+    <head>
+      <!--[if gte mso 9]>
+      <xml>
+        <x:ExcelWorkbook>
+          <x:ExcelWorksheets>
+            <x:ExcelWorksheet>
+              <x:Name>Sheet1</x:Name>
+              <x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
+            </x:ExcelWorksheet>
+          </x:ExcelWorksheets>
+        </x:ExcelWorkbook>
+      </xml>
+      <![endif]-->
+    </head>
+    <body>
+      ${tableHTML}
+    </body>
+    </html>
+  `;
+
+  const blob = new Blob([html], {
+    type: 'application/vnd.ms-excel'
+  });
+
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'transactions.xls';
+  link.click();
 }
+
 
 
   function downloadPDF() {
